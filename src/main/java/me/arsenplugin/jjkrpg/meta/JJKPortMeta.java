@@ -141,6 +141,7 @@ public final class JJKPortMeta {
     // @group modelengine
     // @description
     // Returns the bone position vector as x, y, z.
+    // In to_owner megattach usage, this vector is treated as a neutral local offset reference before being applied relative to the owner.
     // -->
 
     // <--[tag]
@@ -163,7 +164,7 @@ public final class JJKPortMeta {
 
     // <--[tag]
     // @attribute <MEGBoneTag.debug_pose>
-    // @returns MapTag
+    // @returns ElementTag
     // @Plugin JJKPort
     // @group modelengine
     // @description
@@ -227,9 +228,8 @@ public final class JJKPortMeta {
     // Use scale_bone:<meg_bone> to multiply the base scale by a ModelEngine bone's scale every tick.
     // Use smooth_scale_bone:<#> to set display transform interpolation for scale_bone updates. This can only be used if scale_bone is defined.
     // Use billboard:CENTER or another Display billboard mode to control facing.
-    // Use save:<name> to save the result as <entry[name].result>.
+    // Use save:<name> to save the result as <entry[name].result> and <entry[name].particle>.
     // Use cancel, stop, or remove with a MEGParticleTag to destroy the packet particle.
-    //
     // Packet particles are fullbright by default.
     //
     // @Tags
@@ -255,21 +255,28 @@ public final class JJKPortMeta {
 
     // <--[command]
     // @Name Megattach
-    // @Syntax megattach [<entity>|...]|[<meg_particle>|...] (to:<meg_bone>/<entity>) (cancel) (pivot) (relative) (eye_location/head) (scale) (rotation) (smooth:<#>) (position_smooth:<#>) (rotation_smooth:<#>) (scale_smooth:<#>) (offset:<x,y,z>|<x,y,z,yaw,pitch>) (offset_yaw:<#>) (offset_pitch:<#>) (yaw_offset:<#>) (pitch_offset:<#>)
+    // @Syntax megattach [<entity>|...]|[<meg_particle>|...] (to:<meg_bone>/<entity>) (to_owner:<entity>) (cancel) (pivot) (relative) (eye_location/head) (scale) (rotation) (bone_rotation) (smooth:<#>) (position_smooth:<#>) (rotation_smooth:<#>) (scale_smooth:<#>) (offset:<x,y,z>|<x,y,z,yaw,pitch>) (offset_yaw:<#>) (offset_pitch:<#>) (yaw_offset:<#>) (pitch_offset:<#>)
     // @Required 1
-    // @Maximum 18
+    // @Maximum 20
     // @Short Attaches real Bukkit entities or packet particles to a ModelEngine bone or entity target.
     // @Group entity
     // @Description
     // Attaches one or more real Bukkit entities or MEGParticleTag packet particles to a target by updating them every tick.
-    //
     // The target can be a ModelEngine bone via to:<meg_bone> or a normal entity via to:<entity>.
     // Use cancel, stop, or detach to remove an existing attachment.
     //
     // Bone target options:
-    // Use pivot to rotate the offset around the bone yaw.
+    // Use pivot to rotate the manual offset around the bone yaw.
     // Use scale to multiply a real Display entity's original scale by the bone scale.
-    // Use rotation to copy the bone yaw and pitch to the attached entity or packet particle.
+    // Use rotation to copy the target yaw and pitch to the attached entity or packet particle.
+    // Use bone_rotation to allow ModelEngine/model/bone rotation to affect the bone socket yaw/pitch behavior.
+    //
+    // to_owner socket mode:
+    // Use to_owner:<entity> together with to:<meg_bone> to use the owner entity location as the origin while using the bone only as a socket offset reference.
+    // If eye_location/head/eyes is specified, the owner eye/head location is used as the origin.
+    // If relative is specified, the neutral bone offset is applied relative to the to_owner yaw/pitch, similar to <owner.eye_location.relative[x,y,z]>.
+    // Without bone_rotation, the ModelEngine model entity rotation is ignored for the socket offset.
+    // With bone_rotation, ModelEngine/model/bone rotation is included.
     //
     // Entity target options:
     // Use eye_location, eyelocation, head, or eyes to use the target LivingEntity eye location instead of base location.
@@ -311,11 +318,65 @@ public final class JJKPortMeta {
     // - megattach <entry[vfx].result> to:<player> eye_location relative offset:0,0,1
     //
     // @Usage
-    // Attach to a normal entity using relative offset with yaw/pitch calculation offsets.
-    // - megattach <entry[vfx].result> to:<player> eye_location relative offset:0,0,1 yaw_offset:45 pitch_offset:10
+    // Use a ModelEngine bone as a VFX socket offset but move from the player eye location.
+    // - define bone <[player_entity].active_models.get[1].bone[hollow_blue]>
+    // - megattach <entry[vfx].result> to:<[bone]> to_owner:<player> eye_location relative scale rotation smooth:1 position_smooth:1 rotation_smooth:1 scale_smooth:0
+    //
+    // @Usage
+    // Include ModelEngine model/bone rotation in to_owner socket mode.
+    // - megattach <entry[vfx].result> to:<[bone]> to_owner:<player> eye_location relative bone_rotation
     //
     // @Usage
     // Cancel an attachment.
     // - megattach <entry[vfx].result> cancel
+    // -->
+
+    // <--[command]
+    // @Name Blockwave
+    // @Syntax blockwave <location> (for:<player>|...) (duration:<duration>) (radius:<#>) (radiusY:<#>) (radius2:<#>) (velocity:<#>) (velocityX:<list[#|#]>|<#>) (velocityY:<list[#|#]>|<#>) (velocityZ:<list[#|#]>|<#>) (noise:<#>) (shape:sphere/cube) (material:<material>/none) (offset:<x,y,z>) (ground_block) (include_non_solid) (exclude_liquid) (hide_source_block) (gravity:true/false) (limit:<#>)
+    // @Required 1
+    // @Maximum 21
+    // @Short Creates a packet-only fake falling-block wave visual.
+    // @Group particle
+    // @Description
+    // Spawns fake packet-only FallingBlock entities for selected viewers around a target location.
+    // This command does not spawn real Bukkit falling blocks and does not place blocks when they land.
+    //
+    // The command first collects blocks within radius/radiusY, filters them, then sends fake falling block visuals at those block locations.
+    // If for:<player>|... is omitted, all online players in the same world are viewers.
+    //
+    // radius:<#> controls X/Z radius. radiusY:<#> overrides vertical radius. If radiusY is omitted, it uses radius.
+    // radius2:<#> creates an inner empty radius that is skipped; radius2 is also scaled vertically by radiusY.
+    // shape:sphere uses an ellipsoid when radiusY differs from radius. shape:cube uses a box.
+    //
+    // velocity:<#> sets default random velocity: X/Z from -velocity to velocity, and Y from 0 to velocity.
+    // velocityX, velocityY, and velocityZ override individual axes.
+    // Axis velocity can be a fixed number or a list/range like <list[-4|4]>.
+    //
+    // noise:<#> controls chance to include collected blocks, where 1 is 100% and 0.9 skips about 10% randomly.
+    // material:none or omitted uses the original targeted block material. material:<material> overrides the visual material.
+    // offset:<x,y,z> offsets the fake falling block spawn position.
+    // ground_block only targets blocks that do not have a solid block above them.
+    // include_non_solid allows non-solid blocks to be used; by default non-solid blocks are skipped.
+    // exclude_liquid skips water and lava.
+    // hide_source_block sends client-side fake air for targeted source blocks and restores them after duration.
+    // gravity:true/false controls fake falling block gravity metadata. Default is true.
+    // limit:<#> caps the amount of fake falling blocks spawned. 0 means no cap.
+    //
+    // @Usage
+    // Spawn a small upward block wave around the player.
+    // - blockwave <player.location> duration:1s radius:3 radiusY:1 velocity:0.2 shape:sphere ground_block limit:40
+    //
+    // @Usage
+    // Spawn blocks straight upward using axis velocity overrides.
+    // - blockwave <player.location> duration:2s radius:2 velocity:0 velocityX:0 velocityY:5 velocityZ:0 ground_block
+    //
+    // @Usage
+    // Spawn a hollow cube wave and hide source blocks client-side.
+    // - blockwave <player.location> duration:20t radius:5 radiusY:2 radius2:2 shape:cube velocity:0.3 hide_source_block limit:80
+    //
+    // @Usage
+    // Spawn fake falling blocks as a specific material.
+    // - blockwave <player.location> duration:1s radius:4 material:stone velocityY:<list[0.2|0.8]> ground_block
     // -->
 }
