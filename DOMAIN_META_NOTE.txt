@@ -1,1 +1,24 @@
-Domain meta documentation placeholder.
+JJKPort domain meta notes
+
+DomainTag
+- Format: domain@<id>
+- Tags: <DomainTag.state>, <DomainTag.mode>, <DomainTag.owners>, <DomainTag.affected_players>, <DomainTag.affected_mythicmobs>
+- state returns OPENING or ACTIVE. Canceled domains are removed and no longer exist.
+- mode returns BARRIER or OPEN.
+
+Domaineffect command additions
+- open_domain / non_barrier / no_barrier / barrier:false creates OPEN mode.
+- domain_start_task:<task> runs when created with definitions: domaintag.
+- domain_after_opening_task:<task> runs when opening finishes with definitions: domaintag.
+- domain_tick_task:<task> runs every tick after opening with definitions: domaintag.
+- domain_cancel_task:<task> runs on duration, command cancel, owner invalid, or plugin shutdown with definitions: domaintag|reason.
+
+Open domain behavior
+- No shell/barrier.
+- No final floor/arena swap.
+- No forced teleport to domain Y.
+- No containment teleport.
+- Affected players/entities update dynamically as they enter or leave the radius.
+
+Example
+- domaineffect <player.location> owner:<player> duration:1290t domain_opening:90t radius:30 radiusY:30 open_domain domain_tick_task:Malevolent_Shrine_DomainTick domain_cancel_task:Malevolent_Shrine_DomainCancel save:active_domain
