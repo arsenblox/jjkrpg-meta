@@ -493,4 +493,68 @@ public final class JJKPortMeta {
     // - foreach <[domaintag].assets> as:asset:
     //   - remove <[asset]>
     // -->
+
+    // <--[command]
+    // @Name Arsen_Cinematic
+    // @Syntax arsen_cinematic (play/cancel) (sequence:<list>) (location:<location>) (owner:<player>) (for:<player>|...) (bone:<meg_bone>) (look_bone:<meg_bone>) (hide_player_entity:<true/false>) (camera_mode:per_player/shared) (position_smooth:<#>) (rotation_smooth:<#>) (smoothing_mode:interpolation/lerp) (update_tick:<#>) (save:<name>)
+    // @Required 1
+    // @Maximum 14
+    // @Short Plays or cancels a JJKPort cinematic camera sequence.
+    // @Group cinematic
+    // @Description
+    // Starts a cinematic for selected viewers using a camera entity and a ModelEngine bone-follow camera.
+    // for:<player>|... is required for both play and cancel.
+    // play is the default action if play/cancel is omitted.
+    // Play requires sequence:<list>, location:<location>, owner:<player>, and should provide bone:<meg_bone> plus look_bone:<meg_bone> for the current bone-follow camera mode.
+    // Cancel stops the active cinematic for the selected viewers.
+    //
+    // The command saves the cinematic UUID as <entry[name].result> when save:<name> is used, and always saves <entry[result]>.
+    // camera_mode defaults to per_player. Use shared to reuse one shared camera entity for viewers in the same cinematic.
+    // position_smooth and rotation_smooth default to 3.
+    // smoothing_mode defaults to interpolation. Use lerp for manual per-tick interpolation.
+    // update_tick defaults to 1 and controls how often the bone pose is sampled.
+    // hide_player_entity:true hides the player's visual body with the hide_player MythicSkill and restores it with show_player on stop.
+    //
+    // Supported pipe-based sequence lines:
+    // camera_cframe|<relative_location>|<duration>|<easing_style>|<easing_function>|<start_tick>
+    // camera_shake|<pos/rot/posrot>|<strength>|<frequency>|<duration>|<fade_in>|<fade_out>|<start_tick>
+    // mythicskill|<skill_name>|<tick>
+    // denizen_task|<task_name or task.path>|<tick>
+    // potion_effect|<effect_type>|<amplifier>|<duration>|<tick>
+    // bone_smoothing|<position_smooth>|<rotation_smooth>|<interpolation/lerp>|<tick>
+    // exit_cinematic|<tick>
+    //
+    // mythicskill actions cast on the owner visual body when available, otherwise the owner player.
+    // denizen_task actions run the task directly with definitions: owner|cinematic_id.
+    // potion_effect actions apply to each viewer.
+    // bone_smoothing changes camera smoothing for the active cinematic.
+    // exit_cinematic sets the explicit stop tick.
+    //
+    // @Usage
+    // - define sequence <list[exit_cinematic|125]>
+    // - arsen_cinematic play sequence:<[sequence]> location:<player.location> owner:<player> for:<player> bone:<[camera_bone]> look_bone:<[look_bone]> camera_mode:per_player hide_player_entity:true save:cinematic
+    //
+    // @Usage
+    // - arsen_cinematic cancel for:<player>
+    // -->
+
+    // <--[command]
+    // @Name Arsen_Bone_Debug
+    // @Syntax arsen_bone_debug <meg_bone> (deep)
+    // @Required 1
+    // @Maximum 2
+    // @Short Broadcasts debug information for a ModelEngine bone.
+    // @Group cinematic
+    // @Description
+    // Debug command for inspecting a MEGBoneTag's base entity, active model, bone location, position, scale, translation, and reflected ModelEngine bone data.
+    // Use deep to include deeper reflected fields and methods.
+    // Output is broadcast to online players in chat and split into long-line-safe chunks.
+    //
+    // @Usage
+    // - define bone <player.flag[game.PlayerEntity].entity.active_models.get[naoya].bone[head]>
+    // - arsen_bone_debug <[bone]>
+    //
+    // @Usage
+    // - arsen_bone_debug <[bone]> deep
+    // -->
 }
